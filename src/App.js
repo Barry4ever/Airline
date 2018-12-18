@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import Panel from "./Panel";
 import getWeb3 from "./getWeb3";
 import AirlineContract from "./airline";
+import { AirlineService } from "./AirlineService";
 
 const converter = (web3) => {
     return (value) =>{
@@ -15,18 +16,19 @@ export class App extends Component {
         super(props);
         this.state ={
             account: undefined,
-            Balance: 0
+            Balance: 0,
+            flights: [],
+            loyalpoint: 0,
+            availablefights: 0
         }
     }
 
     async componentDidMount() {
         this.web3 = await getWeb3();
         this.toEther = converter(this.web3);
-        console.log(this.web3.version);
         this.airline = await AirlineContract(this.web3.currentProvider);
-        console.log(this.airline.buyFlight);
+        this.AirlineService = new AirlineService(this.airline);
         var account = (await this.web3.eth.getAccounts())[0];
-        console.log(account);
         this.setState({
             account: account.toLowerCase()
         },() => {
@@ -41,8 +43,23 @@ export class App extends Component {
         });
     }
 
-    async load(){
+    async getLoyalPoint(){
+        let loyalpoint= await this.web3.eth.getLoyalPoint(this.state.account);
+        this.setState({
+            points : loyalpoint
+        });
+    }
+
+    async getFlights(){
+        let flights = await this.AirlineService.getFlights();
+        this.setState({
+            flights        
+        });
+    }
+
+       async load(){
         this.getBalance();
+        this.getFlights();
     }
 
     render() {
@@ -60,20 +77,25 @@ export class App extends Component {
                 </div>
                 <div className="col-sm">
                     <Panel title="Loyalty points - refundable ether">
-
+                        <p>{this.state.account}</p>
+                        <span>points: {this.state.points}</span>
                     </Panel>
                 </div>
             </div>
             <div className="row">
                 <div className="col-sm">
                     <Panel title="Available flights">
-
-
+                    {this.state.flights.map((flight, i) => {
+                            return <div key={i}>
+                                <span>{flight.name} - cost: {this.toEther(flight.price)}</span>
+                            </div>
+                    })}
                     </Panel>
                 </div>
                 <div className="col-sm">
                     <Panel title="Your flights">
-
+                        <p>{this.state.account}</p>
+                        <span>Your Fights: {this.state.fights}</span>
                     </Panel>
                 </div>
             </div>
